@@ -1,2 +1,9 @@
 # 3DPrinterLUIS
-This project is a demo of LUIS App for 3D Printer Helper Bot. In this demo, you will learn how to build/train/publish the LUIS app on[luis.ai](https://www.luis.ai)
+3DPrinterLUIS项目是一个针对3D打印机机器人的语义应用的样例，主要介绍如何使用[luis.ai](https://www.luis.ai)生成语义App，创建意图，训练意图并发布语义App REST API给其他应用服务调用。该样例将包括以下内容：
+- 创建语义应用
+- 创建意图/语料
+- 创建实例
+- 训练与测试意图
+- 发布语义应用
+该样例需要使用[微软认知服务](https://azure.microsoft.com/zh-cn/services/cognitive-services/)中语义服务，需要申请免费使用账号或者购买Azure.com的订阅。
+## 创建语义应用 ##
