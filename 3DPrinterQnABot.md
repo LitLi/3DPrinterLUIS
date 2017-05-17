@@ -9,6 +9,7 @@
 
 ## 创建QnA服务 ##
 QnAMaker可以让开发者使用FAQ URl，FAQ文件或者手工录入问题答案等方式，轻松构建一个问答机器人服务。访问[QnAMaker.ai](http://qnamaker.ai)，开始你的问答机器人的创建吧。
+
 使用Microsoft Account登陆QnAMaker门户后，点击Create a new service，输入服务名称，和FAQ信息：FAQ URL， FAQ文件或者手工输入FAQ。这里我们选择使用FAQ 文件，如果使用FAQ文件，请注意必须是.tsv, .pdf, .doc, .docx文件，每个问答一行，中间用tab键空开（具体可以参考[FAQ Test](./FAQTest.tsv)，文件大小不能超过2M
 ![创建QnA服务](./images/image25.PNG)
 
@@ -30,8 +31,8 @@ QnA服务发布成功，我们可以将该服务集成到BoT程序中，让它�
 微软[BoT Framework](http://dev.botframework.com)为开发者提供BoT程序开发框架，可以使用Microsoft Account登陆BoT Framework官网，了解BoT应用开发相关内容。
 ![BoT Framework官网](./images/image30.PNG)
 
-其中 C# 开发者可以利用Visual Studio提供的Template创建BoT Application。Visual Studio Template下载安装，BoT应用创建可以访问[参考文档](https://docs.microsoft.com/en-us/bot-framework/dotnet/bot-builder-dotnet-quickstart)
-再Visual Studio中安装BoT Template后，就可以创建BoT应用，输入BoT Solution名称等信息。
+其中 C# 开发者可以利用Visual Studio提供的Template创建BoT Application。Visual Studio Template下载安装，BoT应用创建可以访问[参考文档](https://docs.microsoft.com/en-us/bot-framework/dotnet/bot-builder-dotnet-quickstart)。
+在Visual Studio中安装BoT Template后，就可以创建BoT应用，输入BoT Solution名称等信息。
 ![创建BoT应用](./images/image32.PNG)
 
 BOT应用创建成功后，就可以开始BoT开发工作了，在这里说明以下该样例再BoT Framework框架中增加代码。
@@ -40,56 +41,166 @@ BOT应用创建成功后，就可以开始BoT开发工作了，在这里说明�
   <appSettings>
     <!-- update these with your BotId, Microsoft App Id and your Microsoft App Password-->
     <add key="BotId" value="3DPrinterHelperBot" />
-    <add key="MicrosoftAppId" value="9820668a-113a-477f-b0b5-5dfa9de4d6b8" />
-    <add key="MicrosoftAppPassword" value="T59pNnmhqocaGfEgNg5aw71" />
-    <add key="KnowledgeBaseId" value="eb3cb3e4-1ec1-4bc2-bcdd-1d3255fd3ac1"/>
-    <add key="SubscriptionKey" value="2b24d6568d44451aafa0bb44a57b2d0b"/>
+    <add key="MicrosoftAppId" value="9820668a-xxxx-477f-xxxx-5dfa9de4d6b8" />
+    <add key="MicrosoftAppPassword" value="T5xxxxxhqocaGfEgNg5aw71" />
+    <add key="KnowledgeBaseId" value="eb3cb3e4-1ec1-4bc2-bcdd-xxxxxxxd3ac1"/>
+    <add key="SubscriptionKey" value="2b24d6568d44451aafa0bb4xxxxxxx"/>
   </appSettings>
 ```
+2. 创建QnAHelper.cs文件，封装调用QnA服务功能
+```
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Web;
+using System.Threading.Tasks;
+using System.Net;
+using System.Net.Http;
+using System.Text;
+using Newtonsoft.Json;
 
+namespace _3DPrinterBot
+{
+    [Serializable]
+    public class QnAHelper
+    {
+        public string KnowledgeBaseId { get; set; }
+        public string SubscriptionKey { get; set; }
+        public QnAHelper(string Id, string subscriptionKey)
+        {
+            KnowledgeBaseId = Id;
+            SubscriptionKey = subscriptionKey;
+        }
 
-## 创建实例 ##
-按照上面意图创建完成设置打印材料意图创建，并输入语料“使用树脂打印”，回车后，在语料文本中，使用鼠标双击你需要定义的实例文本，如这里是树脂。然后输入实例名称“材料”，点击创建实例按钮，即可完成实例创建。
-![创建实例](./images/image09.PNG)
+        public async Task<string> GetAnswer(string question)
+        {
+            if (string.IsNullOrEmpty(question))
+            {
+                return "Invalid question";
+            }
+            else
+            {
+                KBQuestion qItem = new KBQuestion();
+                qItem.Question = question;
+                return await KBPoster(qItem);
+            }
+        }
 
-需要为所有需要实例的语料创建或者配置指定的实例。
-![创建/配置实例](./images/image10.PNG)
+        private async Task<string> KBPoster(KBQuestion questionItem)
+        {
+            HttpClient client = new HttpClient();
+            HttpContent content = new StringContent(JsonConvert.SerializeObject(questionItem), Encoding.UTF8, "application/json");
+            client.DefaultRequestHeaders.Add("Ocp-Apim-Subscription-Key", SubscriptionKey);
+            var result = await client.PostAsync(GetKBUriInternal(KnowledgeBaseId), content);
+            var answerJson = await result.Content.ReadAsStringAsync();
+            KBAnswer answer = null;
+            try
+            {
+                answer = JsonConvert.DeserializeObject<KBAnswer>(answerJson);
+            }
+            catch (Exception ex)
+            {
+                string err = ex.ToString();
+            }
 
-此外，LUIS模型中提供预定义的实例，如时间，数字，百分比，年龄等，当你需要的语料实例是预定义实例时，就不用创建这些实例类型，直接录入语料就可以自动识别这些实例。
-![预定义实例](./images/image12.PNG)
+            if (null == answer)
+                return string.Empty;
+            return answer.Answers[0].Answer;
+        }
 
-## 训练与测试意图 ##
-完成意图与语料的输入后，即可开始训练。点击训练与测试，进入训练界面，点击训练
-![训练意图](./images/image13.PNG)
+        private string GetKBUriInternal(string KnowledgeBaseId)
+        {
+            if (string.IsNullOrWhiteSpace(KnowledgeBaseId))
+                return string.Empty;
+            else
+                return string.Format("https://westus.api.cognitive.microsoft.com/qnamaker/v2.0/knowledgebases/{0}/generateAnswer", KnowledgeBaseId);
+        }
+    }
+}
+```
+3. 创建KBAnswer.cs和KBQuestion.cs，用来解析QnA服务返回的Jason结果。
 
-训练完成后，可以输入测试的语料，测试意图训练的结果。例如输入“开机”，测试结果显示识别该语料的意图结果“启动打印机”，信心指数为0.95
-![训练](./images/image14.PNG)
+4. 修改Bot Framework中RootDialog.cs代码，调用QnAHelper对象，完成QnA服务调用，代码如下：
+```
+using System;
+using System.Threading.Tasks;
+using Microsoft.Bot.Builder.Dialogs;
+using Microsoft.Bot.Connector;
+using System.Configuration;
 
-可以持续的添加意图，语料之后再进行训练测试。
-## 发布语义应用 ##
-完成所有训练和测试，就可以发布语义应用，提供给需要使用本应用解析意图的应用使用了。 点击发布菜单，进入语义应用发布页面，正式发布应用就需要LUIS的访问密钥了。这里介绍使用Azure订阅在[Azure Portal](http://portal.azure.com)中创建LUIS服务并获得Key。
-登陆[Azure Portal](http://portal.azure.com)后， 点击创建，选择AI+Cognitive Services，点击Language Understanding，然后点击Create。
-![创建LUIS服务](./images/image16.PNG)
+namespace _3DPrinterBot.Dialogs
+{
+    [Serializable]
+    public class RootDialog : IDialog<object>
+    {
+        private QnAHelper _helper = null;
 
-输入LUIS服务名称等信息，选择计价模式，为了方便使用，可以选择将该服务钉在管理页面上。
-![创建LUIS服务](./images/image17.PNG)
+        public RootDialog()
+        {
+            AppSettingsReader reader = new AppSettingsReader();
+            string Id = reader.GetValue("KnowledgeBaseId", typeof(string)).ToString();
+            string subscriptionKey = reader.GetValue("SubscriptionKey", typeof(string)).ToString();
+            _helper = new QnAHelper(Id, subscriptionKey);
+        }
 
-创建完成，进入管理首页，就可以看到刚刚创建的LUIS服务3DPrinterLUISAPI，点击进入该服务，在服务信息列表中点击Key，进入密钥管理页面，选择拷贝Key1或者Key2. 注意创建新密钥需要最多10分钟的生效时间， 如果将密钥配置到语义应用时报错，可以稍等几分钟就生效了。 
-![进入LUIS服务](./images/image18.PNG)
+        public Task StartAsync(IDialogContext context)
+        {
+            context.Wait(MessageReceivedAsync);
 
-![拷贝LUIS服务密钥](./images/image19.PNG)
+            return Task.CompletedTask;
+        }
 
-获取密钥后， 进入LUIS语义应用发布页面， 选择添加密钥，输入密钥信息和名称，然后点击保存。
-![添加密钥](./images/image20.PNG)
+        private async Task MessageReceivedAsync(IDialogContext context, IAwaitable<object> result)
+        {
+            var activity = await result as Activity;
+            // return our reply to the user
+            string answer = await _helper.GetAnswer(activity.Text);
+            activity.Text = answer;
+            await context.PostAsync(activity.Text);
 
-密钥添加成功，选择使用该密钥，然后就可以发布应用，点击发布。发布成功后，回生成应用访问的REST API 的Endpoint url，点击该URL可以进行测试。
-![发布应用](./images/image22.PNG)
+            context.Wait(MessageReceivedAsync);
+        }
+    }
+}
 
-在URL后面添加需要测试语料信息，如图
-(./images/image23.PNG)
+```
+## BoT 应用测试 ##
+BoT应用代码编译完成后，可以开始BoT测试，需要参考[C# BoT开发]((https://docs.microsoft.com/en-us/bot-framework/dotnet/bot-builder-dotnet-quickstart)中描述，下载[BoT Emulator](https://docs.microsoft.com/en-us/bot-framework/debug-bots-emulator)，
+按照文档中说明，在Visual Studio中Debug你的Bot程序，在BoT Emulator中配置你本地BoT应用测试地址，可以开始调试。
+![配置BoT Emulator](./images/image33.PNG)
 
-调用返回LUIS语义应用处理结果，如图
-(./images/image24.PNG)
+在BoT Emulator中输入测试的问题，检查返回的结果是否正确。
+![测试BoT](./images/image34.PNG)
 
-## 总结 ##
-LUIS提供给开发者独立完成语义训练环境和服务，利用它可以作为BoT的意图处理中心，实现自己的人工智能服务。 
+## 注册发布BoT应用 ##
+BoT应用测试完成后就可以进行注册发布，可以选择发布BoT Framework支持的Connector上，方便用户使用。这里我们以发布在Skype和WebChat上为例。
+
+1. BoT应用注册之前，需要将BoT 应用发布到web site上，用户可以选择发布到自己的IIS服务器上，有Azure 订阅的用户客户发布到Azure Website服务上，这里以Azure Website为例。
+- 在Azure Portal上创建Web site服务成功后，进入website服务点击 Get publish profile，下载发布配置文件。
+![创建website并下载发布配置文件](./images/image36.PNG)
+
+- 在Visual Studio中，点击Bot应用的工程的右键，点击发布，选择配置文件标签，点击导入，将1步中下载的发布配置文件导入到visual studio中，然后下一步，最后点击发布
+![发布BoT应用到Website上](./images/image37.PNG)
+
+- 应用发布成功后，可以通过域名访问，如该例发布为：http://3dprinterhelperbot.azurewebsites.net/
+![BoT应用发布成功](./images/image38.PNG)
+
+可以开始注册BoT了
+
+2. 登陆[BoT Framework](http://dev.botframework.com)，使用Microsoft Account登陆，开始Bot注册。
+- 点击My bots， 如果你第一次访问，会提示你还没有bot，是否需要注册，点击register。
+![BoT 注册](./images/image35.PNG)
+
+- 输入BoT相关信息，其中message endpoint处填写发布在website上BoT应用URL，选择创建AppID和Password。保存好AppID和Password，在后面程序中需要使用。
+![BoT 注册](./images/image39.PNG)
+
+- BoT注册的最后是选择要发布的Connnect，这里选择Skype和Webchat，可以做测试，通过后就可以提交。
+![BoT Connectoer](./images/image40.PNG)
+
+3. 可以在Skype里面和你的BoT聊天了。
+- 点击Skype的Running， 可以启动Skype。
+![启动Skype](./images/image41.PNG)
+
+- 在Skype里面测试你的BoT
+![在Skype里测试BoT](./images/image42.PNG)
+
