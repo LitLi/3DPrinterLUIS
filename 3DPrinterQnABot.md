@@ -4,7 +4,8 @@
 - 创建3DPrinterQnABot
 - 注册发布3DPrinterQnABot
 - 测试3DPrinterQnABot
-注： 该样例需要访问[QnAMaker](htpp://qnamaker.ai)和[Bot Framework](http://dev.botframework.com)，需要有Microsoft Account。
+
+注： 该样例需要访问[QnAMaker](http://qnamaker.ai)和[Bot Framework](http://dev.botframework.com)，需要有Microsoft Account。
 
 ## 创建QnA服务 ##
 QnAMaker可以让开发者使用FAQ URl，FAQ文件或者手工录入问题答案等方式，轻松构建一个问答机器人服务。访问[QnAMaker.ai](http://qnamaker.ai)，开始你的问答机器人的创建吧。
