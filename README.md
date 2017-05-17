@@ -6,5 +6,5 @@
 
 具体实现过程可以参考：
 - [使用LUIS创建语义应用](./3DPrinterLUIS.md)
-- [使用QnAMaker创建帮助机器人](./3DPrinterQnABot.md)
+- [使用QnAMaker创建帮助机器人](./3DPrinterQnABot.md), 其中涉及的相关源码可以访问[3DPrinterBot.zip](./3DPrinterBot.zip)
  
